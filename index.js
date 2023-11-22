@@ -29,7 +29,7 @@ app.post("/api/shorturl", function (req, res, next) {
   const obj = { original_url, short_url };
   dns.lookup(urlparser.parse(original_url).hostname, (err, address) => {
     if (err) {
-      res.json({ error: "Invalid URL" });
+      res.json({ error: "invalid url" });
     } else {
       urls.insertOne(obj).then((result) => {
         res.json({ original_url, short_url });

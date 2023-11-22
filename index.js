@@ -2,8 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const dns = require("dns");
-const urlparser = require("url");
+
 const { MongoClient } = require("mongodb");
 const dbURI = process.env.DB;
 
@@ -27,16 +26,16 @@ app.post("/api/shorturl", function (req, res, next) {
   const short_url = Math.floor(Math.random() * 100);
   const original_url = req.body.url;
   const obj = { original_url, short_url };
-  dns.lookup(urlparser.parse(original_url).hostname, (err, address) => {
-    if (err) {
-      res.json({ error: "invalid url" });
-    } else {
-      urls.insertOne(obj).then((result) => {
-        res.json({ original_url, short_url });
-        console.log(obj);
-      });
-    }
-  });
+  const urlRegex = /^(https?:\/\/)?([\w\d-]+\.)+[\w\d]{2,}(\/[\w\d-]+)*\/?$/;
+
+  if (!urlRegex.test(original_url)) {
+    res.json({ error: "invalid url" });
+  } else {
+    urls.insertOne(obj).then((result) => {
+      res.json({ original_url, short_url });
+      console.log(obj);
+    });
+  }
 });
 app.get(`/api/shorturl/:short_url`, async (req, res) => {
   const shorturl = req.params.short_url;

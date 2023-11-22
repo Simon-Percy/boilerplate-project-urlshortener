@@ -3,12 +3,12 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const dns = require("dns");
-const mongoose = require("mongoose");
+const { MongoClient } = require("mongodb");
 const dbURI = process.env.DB;
-mongoose
-  .connect(`${dbURI}`, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then((result) => console.log("Connected to db"))
-  .catch((err) => console.log(err));
+
+const client = new MongoClient(dbURI);
+const db = client.db("tutorials");
+const urls = db.collection("shorturls");
 // Basic Configuration
 const port = process.env.PORT || 3000;
 
@@ -23,20 +23,25 @@ app.use(express.urlencoded({ extended: true }));
 
 // Your first API endpoint
 app.post("/api/shorturl", function (req, res, next) {
+  const short_url = Math.floor(Math.random() * 100);
   const original_url = req.body.url;
-
+  const obj = { original_url, short_url };
   dns.lookup(original_url, async (err, address) => {
     if (err) {
       res.json({ error: "invalid url" });
       return;
     } else {
-      const short_url = Math.floor(Math.random() * 3 + 1);
-      res.json({ original_url, short_url });
+      urls.insertOne(obj).then((result) => {
+        res.json({ original_url, short_url });
+        console.log(obj);
+      });
     }
   });
 });
-app.get(`/api/shorturl/:path`, function (req, res) {
-  res.redirect(original_url);
+app.get(`/api/shorturl/:short_url`, async (req, res) => {
+  const shorturl = req.params.short_url;
+  const short = await urls.findOne({ short_url: +shorturl });
+  res.redirect(short.original_url);
 });
 app.listen(port, function () {
   console.log(`Listening on port ${port}`);

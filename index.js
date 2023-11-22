@@ -3,9 +3,9 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const dns = require("dns");
+const urlparser = require("url");
 const { MongoClient } = require("mongodb");
 const dbURI = process.env.DB;
-const urlparser = require("url");
 
 const client = new MongoClient(dbURI);
 const db = client.db("tutorials");
@@ -27,10 +27,15 @@ app.post("/api/shorturl", function (req, res, next) {
   const short_url = Math.floor(Math.random() * 100);
   const original_url = req.body.url;
   const obj = { original_url, short_url };
-
-  urls.insertOne(obj).then((result) => {
-    res.json({ original_url, short_url });
-    console.log(obj);
+  dns.lookup(urlparser.parse(original_url).hostname, (err, address) => {
+    if (err) {
+      res.json({ error: "Invalid URL" });
+    } else {
+      urls.insertOne(obj).then((result) => {
+        res.json({ original_url, short_url });
+        console.log(obj);
+      });
+    }
   });
 });
 app.get(`/api/shorturl/:short_url`, async (req, res) => {
